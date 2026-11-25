@@ -1,5 +1,5 @@
 /*!
- * PageGlass 1.0.0 — Liquid Glass look for the Vivaldi browser UI.
+ * PageGlass 1.0.1 — Liquid Glass look for the Vivaldi browser UI.
  * https://github.com/halykoss/PageGlass · MIT License
  *
  * Runs inside Vivaldi's own window (window.html). It captures the visible tab
@@ -9,7 +9,7 @@
 (() => {
   'use strict';
   if(window.__pageGlass)return;
-  const VERSION='1.0.0';
+  const VERSION='1.0.1';
   const STORE='pageglass.enabled';
   const T={off:'off',on:n=>`on · ${n} captures`,paused:'paused on this page',noimg:'no image',toggle:'click to turn on/off'};
   const api=globalThis.chrome||globalThis.browser;
@@ -18,9 +18,9 @@
   const layers=new Map();
   const STRIP_GAP=4; // strip panes are inset; their element edge is what touches the page
   const MIRROR=.45; // horizontal compression of the reflected page inside narrow strips
-  const INSET=6; // gap between window edge and the floating sidebar card
+  const INSET=4; // gap between window edge and the floating sidebar card (same as strips)
   let button,windowId,timer,observer,raf=0,position=0,capturedPosition=0,attachedTab=null,attachEpoch=0;
-  let lastCapture=0,pending=false,resizeTimer;
+  let lastCapture=0,pending=false,resizeTimer,lastFrame=null;
   const interval=()=>pg.backend==='tabs'?550:70;
   const surfaces=()=>[...document.querySelectorAll('#browser .mainbar,#browser .tabbar-wrapper,#browser #header,#browser #panels-container')].filter(el=>{const r=el.getBoundingClientRect();return r.width>10&&r.height>10&&getComputedStyle(el).display!=='none';}).filter((el,_,all)=>!all.some(o=>o!==el&&o.contains(el)));
   function call(object,method,...args){return new Promise((resolve,reject)=>{
@@ -36,8 +36,8 @@
   }
   function schedule(delay=0){if(!pg.enabled)return;if(pg.busy){pending=true;return;}if(timer)return;timer=setTimeout(()=>{timer=0;frame();},Math.max(delay,interval()-(performance.now()-lastCapture)));}
   function clear(){
-    pg.epoch++;pending=false;cancelAnimationFrame(raf);raf=0;
-    for(const [el,layer]of layers){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card');}layers.clear();
+    pg.epoch++;pending=false;lastFrame=null;cancelAnimationFrame(raf);raf=0;
+    for(const [el,layer]of layers){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card');delete el.__pgWant;}layers.clear();classWatch.disconnect();
   }
   // Group adjacent real buttons into shared glass capsules (Safari 26 style).
   // Spacers, dividers and hidden slots are also `.button-toolbar > button` in
@@ -67,6 +67,12 @@
   const scheduleMount=()=>{if(!mountRaf)mountRaf=requestAnimationFrame(()=>{mountRaf=0;mount();});};
   function mount(){
     capsules();
+    // Vivaldi sometimes replaces a toolbar element outright (React re-render). Re-dress the new one
+    // straight away from the last capture instead of leaving it bare until the next capture.
+    if(pg.enabled&&lastFrame&&!pg.busy){
+      const now=surfaces();
+      if(now.some(el=>!layers.has(el))||[...layers.keys()].some(el=>!el.isConnected))paint(lastFrame.image,now,lastFrame.atPosition);
+    }
     const bar=document.querySelector('.toolbar-mainbar');
     if(!bar||document.getElementById('pageglass-toggle'))return;
     const holder=document.createElement('div');holder.className='button-toolbar';holder.id='pageglass-toggle';
@@ -168,6 +174,34 @@
     #browser .pg-surface .tab:not(.active):hover{background:var(--pg-hover)!important;}
     #browser .pg-surface .tab.active{background:linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass))!important;box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;}
     #browser .pg-surface .tab .favicon{width:14px!important;height:14px!important;}
+    /* Tab stacks. Vivaldi paints the accordion arrow of the active stack as a solid block (accent or
+       stack colour) that sits behind the whole tile and spills out of the glass. Here the arrow is a
+       quiet chevron; a stack's own colour survives only as an accent (chevron, counter ring, tint). */
+    #browser .pg-surface .accordion-toggle-arrow{--pg-stack:var(--stackColorBg,var(--pg-ink));background:transparent!important;color:var(--pg-ink)!important;box-shadow:none!important;border:0!important;border-radius:10px!important;opacity:.6;transition:background-color 140ms ease,opacity 140ms ease;}
+    #browser .pg-surface .accordion-toggle-arrow.colored{color:var(--pg-stack)!important;opacity:.9;}
+    #browser .pg-surface .accordion-toggle-arrow:hover{background:var(--pg-hover)!important;opacity:1;}
+    #browser .pg-surface .accordion-toggle-arrow.closed.active{opacity:.9;}
+    #browser .pg-surface .accordion-toggle-arrow::before,#browser .pg-surface .accordion-toggle-arrow::after{background:transparent!important;box-shadow:none!important;}
+    #browser .pg-surface .stack-counter{background:color-mix(in srgb,var(--pg-glass-hi) 85%,transparent)!important;color:var(--pg-ink)!important;border-radius:999px!important;
+      box-shadow:inset 0 .5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+    #browser .pg-surface .tab-position.colored .stack-counter{box-shadow:inset 0 0 0 1.5px var(--stackColorBg),0 0 0 .5px var(--pg-line)!important;}
+    #browser .pg-surface .tab-position.colored .tab:not(.active),
+    #browser .pg-surface .tab-position .tab-in-accordion:not(.active){background:transparent!important;}
+    #browser .pg-surface .tab-position.colored .tab:not(.active){background:color-mix(in srgb,var(--stackColorBg) 16%,transparent)!important;}
+    #browser .pg-surface .tab-position.colored .tab:not(.active):hover{background:color-mix(in srgb,var(--stackColorBg) 26%,transparent)!important;}
+    #browser .pg-surface .tab-group-indicator .tab-indicator{opacity:.6;}
+    /* Vivaldi frames each stack with an SVG stroke in the stack colour: keep it as a faint hairline. */
+    #browser .pg-surface .svg-tab-stack .stack-frame{stroke:color-mix(in srgb,var(--stackColorBg,var(--pg-ink)) 40%,transparent)!important;stroke-width:1px!important;}
+    /* Collapsed stack holding the active tab: tab + arrow read as one glass tile. */
+    #browser .pg-surface .accordion-toggle-arrow.closed.active{background:var(--pg-glass)!important;border-radius:0 0 8px 8px!important;opacity:1;}
+    #browser .pg-surface .accordion-toggle-arrow.closed.active:hover{background:color-mix(in srgb,var(--pg-glass) 70%,var(--pg-glass-hi))!important;}
+    #browser .pg-surface .tab.active.tab-accordion{box-shadow:inset 0 1px 0 var(--pg-rim)!important;}
+    #browser .pg-surface .tab-position:not(.colored) .tab-group-indicator .tab-indicator.active{background:var(--pg-ink)!important;opacity:.45;}
+    /* Narrow strips show icons only: Vivaldi may squeeze the first letters of titles in otherwise. */
+    #browser .pg-surface.pg-strip .tab .title,#browser .pg-surface.pg-strip .tab .close{display:none!important;}
+    /* Narrow strips: no permanent scrollbar on the glass (scrolling still works). */
+    #browser .pg-surface.pg-strip *{scrollbar-width:none!important;}
+    #browser .pg-surface.pg-strip ::-webkit-scrollbar{display:none!important;width:0!important;}
 
     /* ── Icons inside the address field (site info shield, bookmark): bare glyphs, no capsule. ── */
     #browser .pg-surface .UrlBar-AddressField .button-toolbar,
@@ -212,24 +246,29 @@
     #browser #panels-container.pg-surface #panels,#browser #panels-container.pg-surface .panel-group,
     #browser #panels-container.pg-surface .panel,#browser #panels-container.pg-surface .webpanel-header,
     #browser #panels-container.pg-surface .panel-collapse-guard{background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
-    #browser #panels-container.pg-card #switch{padding-block:${INSET+4}px!important;padding-inline:${INSET}px!important;}
+    #browser #panels-container.pg-card #switch{padding-block:${INSET+4}px!important;}
     #browser #panels-container.pg-card .panel-group{clip-path:inset(${INSET}px ${INSET}px ${INSET}px 0 round 0 14px 14px 0);}
     #browser #panels-container.right.pg-card .panel-group{clip-path:inset(${INSET}px 0 ${INSET}px ${INSET}px round 14px 0 0 14px);}
     #browser #panels-container.pg-surface #switch>button,
     #browser #panels-container.pg-surface #switch .button-toolbar:not(.toolbar-spacer,.toolbar-spacer-flexible,.toolbar-divider)>button{
-      border-radius:12px!important;background:transparent!important;box-shadow:none!important;border:0!important;color:var(--pg-ink)!important;
+      border-radius:11px!important;background:transparent!important;box-shadow:none!important;border:0!important;color:var(--pg-ink)!important;
+      flex:0 0 30px!important;width:30px!important;min-width:30px!important;max-width:30px!important;margin-inline:auto!important;
       transition:background-color 140ms ease,transform 260ms cubic-bezier(.3,1.6,.5,1);
     }
     #browser #panels-container.pg-surface #switch>button:hover,
     #browser #panels-container.pg-surface #switch .button-toolbar>button:hover{background:var(--pg-hover)!important;}
     #browser #panels-container.pg-surface #switch>button:active,
     #browser #panels-container.pg-surface #switch .button-toolbar>button:active{background:var(--pg-press)!important;transform:scale(.9);}
+    #browser #panels-container.pg-surface #switch .button-toolbar.active,
+    #browser #panels-container.pg-surface #switch .button-toolbar:focus-visible{background:transparent!important;box-shadow:none!important;}
     #browser #panels-container.pg-surface #switch>button.active,
+    #browser #panels-container.pg-surface #switch .button-toolbar.active>button,
     #browser #panels-container.pg-surface #switch .button-toolbar>button.active{
       background:linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass))!important;
       box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;
     }
-    #browser #panels-container.pg-surface #switch>button.active::before,#browser #panels-container.pg-surface #switch>button.active::after{display:none!important;}
+    #browser #panels-container.pg-surface #switch>button.active::before,#browser #panels-container.pg-surface #switch>button.active::after,
+    #browser #panels-container.pg-surface #switch .button-toolbar.active::before,#browser #panels-container.pg-surface #switch .button-toolbar.active::after{display:none!important;}
 
     /* PageGlass toggle: plain glyph, full strength when on (white in dark mode, ink in light mode). */
     #pageglass-toggle{flex:0 0 auto;}
@@ -267,11 +306,19 @@
   // `start` inside a pane of height `pane`, covering the pane (never worse than at rest).
   const travel=(img,start,size,pane)=>{img.dataset.hi=Math.max(0,-start);img.dataset.lo=Math.min(0,pane-start-size);};
   function motion(){if(!raf)raf=requestAnimationFrame(move);}
+  // Vivaldi re-renders some surfaces' `class` attribute (e.g. #panels-container when a panel opens),
+  // which wipes our classes while the glass layer stays. Put them back and refresh the geometry.
+  const classWatch=new MutationObserver(records=>{
+    for(const {target:el} of records){
+      const want=el.__pgWant;
+      if(want&&want.some(c=>!el.classList.contains(c))){el.classList.add(...want);schedule(60);}
+    }
+  });
   function paint(image,elements,atPosition){
     const root=document.getElementById('browser'),rr=root.getBoundingClientRect();
-    capturedPosition=atPosition;
+    capturedPosition=atPosition;lastFrame={image,atPosition};
     const active=new Set(elements);
-    for(const [el,layer]of layers)if(!active.has(el)){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card');layers.delete(el);}
+    for(const [el,layer]of layers)if(!active.has(el)){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card');delete el.__pgWant;layers.delete(el);}
     const img=()=>{const i=document.createElement('img');i.alt='';i.draggable=false;i.decoding='async';return i;};
     for(const el of elements){
       const r=el.getBoundingClientRect();if(r.width*r.height>rr.width*rr.height*.45)continue;
@@ -284,13 +331,14 @@
         layer.append(refract,reflect);layers.set(el,layer);el.prepend(layer);
         // Only static elements need a containing block; never override Vivaldi's absolute/fixed overlays.
         if(getComputedStyle(el).position==='static')el.classList.add('pg-pos');
-        el.classList.add('pg-surface');
       }
       layer.dataset.axis=r.width>=r.height?'x':'y';
       // Narrow vertical strips (vertical tabs, panel icons) stay native: a full-height glass slab
       // reads as a grey bar. Only their items get glass. Wider panels become a floating card.
       const kind=layer.dataset.axis==='x'?'bar':r.width<120?'strip':'card';
-      layer.dataset.kind=kind;el.classList.toggle('pg-strip',kind==='strip');el.classList.toggle('pg-card',kind==='card');
+      layer.dataset.kind=kind;
+      el.__pgWant=['pg-surface',...(el.classList.contains('pg-pos')?['pg-pos']:[]),...(kind==='bar'?[]:['pg-'+kind])];
+      el.classList.remove('pg-strip','pg-card');el.classList.add(...el.__pgWant);
       // Measure the pane itself after our classes applied (bar height, insets, padding all change it).
       const lr=layer.getBoundingClientRect();
       const left=lr.x-rr.x+8,top=lr.y-rr.y;
@@ -333,6 +381,8 @@
         i.style.left=-left+'px';i.style.top=-top+'px';travel(i,-top,rr.height,lr.height);
       }
     }
+    classWatch.disconnect();
+    for(const el of layers.keys())classWatch.observe(el,{attributes:true,attributeFilter:['class']});
     move();
   }
   async function attach(tab){
@@ -391,8 +441,10 @@
   const changed=info=>{if(windowId!==undefined&&info.windowId!==undefined&&info.windowId!==windowId)return;pg.lastTab=info.tabId??null;refresh();};
   const updated=(id,change)=>{if(id!==pg.lastTab){if(pg.lastTab===null&&(change.url||change.status==='complete'))schedule(80);return;}if(change.url||change.status==='loading')refresh();if(change.status==='complete')schedule(80);};
   const resized=()=>{pg.epoch++;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>schedule(),120);};
-  api?.runtime?.onMessage?.addListener(receive);api?.tabs?.onActivated?.addListener(changed);api?.tabs?.onUpdated?.addListener(updated);window.addEventListener('resize',resized);
-  pg.stop=()=>{pg.enabled=false;clearTimeout(timer);clearTimeout(resizeTimer);observer?.disconnect();api?.runtime?.onMessage?.removeListener(receive);api?.tabs?.onActivated?.removeListener(changed);api?.tabs?.onUpdated?.removeListener(updated);window.removeEventListener('resize',resized);clear();document.getElementById('pageglass-toggle')?.remove();css.remove();delete window.__pageGlass;};
+  // Captures pause while the window is hidden; resume as soon as it is visible again.
+  const visible=()=>{if(!document.hidden)schedule(60);};
+  api?.runtime?.onMessage?.addListener(receive);api?.tabs?.onActivated?.addListener(changed);api?.tabs?.onUpdated?.addListener(updated);window.addEventListener('resize',resized);document.addEventListener('visibilitychange',visible);
+  pg.stop=()=>{pg.enabled=false;clearTimeout(timer);clearTimeout(resizeTimer);observer?.disconnect();api?.runtime?.onMessage?.removeListener(receive);api?.tabs?.onActivated?.removeListener(changed);api?.tabs?.onUpdated?.removeListener(updated);window.removeEventListener('resize',resized);document.removeEventListener('visibilitychange',visible);clear();document.getElementById('pageglass-toggle')?.remove();css.remove();delete window.__pageGlass;};
   // The on/off choice survives restarts (localStorage is null inside Vivaldi's window).
   async function loadSetting(){try{const v=await api?.storage?.local?.get(STORE);if(v&&v[STORE]===false)pg.enabled=false;}catch{}}
   async function start(){if(!document.getElementById('browser')){setTimeout(start,300);return;}await loadSetting();mount();observer=new MutationObserver(scheduleMount);observer.observe(document.body,{subtree:true,childList:true});if(pg.enabled)schedule(500);}
