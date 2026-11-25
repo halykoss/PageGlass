@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Horizons — PageGlass demo page</title>
+<style>
+  /* Colourful, self-made demo content (no third-party assets) used to record the PageGlass video. */
+  :root{--ink:#14151a;--muted:#5b5e6b;--bg:#fbfaf7}
+  *{box-sizing:border-box}
+  body{margin:0;font:17px/1.6 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+  .hero{position:relative;height:560px;overflow:hidden;color:#fff}
+  .hero svg{position:absolute;inset:0;width:100%;height:100%}
+  .hero .copy{position:absolute;left:8vw;bottom:90px;max-width:720px}
+  .kicker{letter-spacing:.18em;text-transform:uppercase;font-size:13px;font-weight:700;opacity:.9}
+  h1{font-size:74px;line-height:1;margin:.25em 0 .2em;font-weight:800;letter-spacing:-.03em}
+  .hero p{font-size:20px;opacity:.92;margin:0}
+  nav.strip{display:flex;gap:10px;padding:18px 8vw;background:#14151a;color:#fff;font-weight:600;font-size:14px;overflow:hidden}
+  nav.strip span{padding:6px 14px;border-radius:99px;background:#ffffff14}
+  nav.strip span:nth-child(1){background:#ff5f6d}
+  main{max-width:1180px;margin:0 auto;padding:56px 32px 120px}
+  h2{font-size:40px;letter-spacing:-.02em;margin:64px 0 18px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .card{border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 10px 30px -18px #0005}
+  .card .art{height:210px}
+  .card .t{padding:16px 20px 22px}
+  .card b{display:block;font-size:20px;margin-bottom:4px}
+  .card small{color:var(--muted)}
+  .wide{height:380px;border-radius:28px;margin:30px 0;position:relative;overflow:hidden}
+  .wide .label{position:absolute;left:36px;bottom:30px;color:#fff;font-size:44px;font-weight:800;letter-spacing:-.02em;text-shadow:0 2px 20px #0004}
+  p.lede{font-size:21px;color:var(--muted);max-width:760px}
+  .cols{columns:2;column-gap:44px;color:#30323b}
+  .band{height:180px;border-radius:24px;margin:28px 0;background:linear-gradient(90deg,#00c9a7,#3f8cff 40%,#a04cff 70%,#ff4f8b)}
+  footer{background:#14151a;color:#d9d9e0;padding:48px 8vw;font-size:14px}
+</style>
+</head>
+<body>
+<header class="hero">
+  <svg viewBox="0 0 1440 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a59"/><stop offset=".45" stop-color="#ff4f8b"/><stop offset="1" stop-color="#5b3cc4"/></linearGradient>
+      <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6c8"/><stop offset=".6" stop-color="#ffd36b"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>
+    </defs>
+    <rect width="1440" height="560" fill="url(#sky)"/>
+    <circle cx="1040" cy="250" r="190" fill="url(#sun)"/>
+    <path d="M0 380 L180 250 L330 340 L520 190 L700 330 L880 220 L1080 350 L1260 240 L1440 320 L1440 560 L0 560Z" fill="#3a2a8c" opacity=".9"/>
+    <path d="M0 440 L240 330 L420 420 L640 300 L860 430 L1060 330 L1300 440 L1440 380 L1440 560 L0 560Z" fill="#231a5e"/>
+    <path d="M0 500 C240 450 480 540 720 490 S1200 450 1440 500 L1440 560 L0 560Z" fill="#120d33"/>
+  </svg>
+  <div class="copy">
+    <div class="kicker">Horizons · Issue 12</div>
+    <h1>Light, bent<br>through glass</h1>
+    <p>A demo page for PageGlass: colourful content scrolling under Vivaldi's toolbars.</p>
+  </div>
+</header>
+<nav class="strip"><span>Featured</span><span>Coastlines</span><span>Mountains</span><span>Cities</span><span>Night skies</span><span>Deserts</span></nav>
+<main>
+  <p class="lede">Every illustration on this page is drawn with gradients and shapes, so the demo stays free of third‑party images while still giving the glass something vivid to refract.</p>
+
+  <h2>Coastlines</h2>
+  <div class="grid">
+    <div class="card"><div class="art" style="background:linear-gradient(180deg,#7ad7ff,#2a7de1 55%,#0d3d8c)"></div><div class="t"><b>Turquoise bay</b><small>Water, sand and a long afternoon.</small></div></div>
+    <div class="card"><div class="art" style="background:linear-gradient(160deg,#ffd86b,#ff8a5b 45%,#d84d7b)"></div><div class="t"><b>Golden hour</b><small>The sea turns to copper.</small></div></div>
+    <div class="card"><div class="art" style="background:linear-gradient(200deg,#0fd8b0,#00a2a6 50%,#05557a)"></div><div class="t"><b>Lagoon</b><small>Shallow, green, impossibly clear.</small></div></div>
+  </div>
+
+  <div class="wide" style="background:radial-gradient(circle at 75% 35%,#ffe58a 0 7%,transparent 8%),linear-gradient(180deg,#1b1e5c,#6b3fa0 45%,#ff7a59 80%,#ffc46b)"><div class="label">Dusk over the ridge</div></div>
+
+  <h2>Mountains</h2>
+  <div class="cols">
+    <p>Glass that only blurs looks like fog. Liquid glass keeps a little of what is behind it, bends it near the edges and catches a highlight along the rim. That is what the toolbars above are doing with this page, live, while you scroll.</p>
+    <p>Controls sit on top as frosted capsules: more blur, milkier, so their icons stay readable over any colour. The bar underneath stays glossy and clearer, and reflects the content right next to it.</p>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="art" style="background:linear-gradient(180deg,#bfe6ff,#8fb8ff 40%,#5a6fd6 70%,#2b2f7a)"></div><div class="t"><b>Glacier blue</b><small>Cold light, high altitude.</small></div></div>
+    <div class="card"><div class="art" style="background:linear-gradient(180deg,#a8ff78,#4fd18b 45%,#1c8a6b)"></div><div class="t"><b>Alpine meadow</b><small>Green to the horizon.</small></div></div>
+    <div class="card"><div class="art" style="background:linear-gradient(180deg,#ffb199,#ff0844)"></div><div class="t"><b>Red rock</b><small>Iron in the stone.</small></div></div>
+  </div>
+
+  <div class="band"></div>
+
+  <h2>Cities at night</h2>
+  <div class="grid">
+    <div class="card"><div class="art" style="background:radial-gradient(circle at 30% 70%,#ffcc00 0 6%,transparent 7%),radial-gradient(circle at 70% 40%,#ff3cac 0 5%,transparent 6%),linear-gradient(180deg,#0b0b2b,#2b1a6b)"></div><div class="t"><b>Neon district</b><small>Signs that never sleep.</small></div></div>
+    <div class="card"><div class="art" style="background:linear-gradient(135deg,#00dbde,#fc00ff)"></div><div class="t"><b>Afterglow</b><small>Cyan into magenta.</small></div></div>
+    <div class="card"><div class="art" style="background:linear-gradient(180deg,#141e30,#243b55 50%,#f8b500)"></div><div class="t"><b>Harbour lights</b><small>Gold on dark water.</small></div></div>
+  </div>
+
+  <div class="wide" style="background:linear-gradient(120deg,#f7971e,#ffd200 30%,#21d4fd 65%,#b721ff)"><div class="label">Desert colours</div></div>
+
+  <h2>Night skies</h2>
+  <p class="lede">Scroll back up: the toolbars follow the page between captures, and nothing ever leaves your machine.</p>
+  <div class="band" style="background:linear-gradient(90deg,#0f0c29,#302b63 50%,#24243e)"></div>
+</main>
+<footer>Horizons is a fictional magazine made for the PageGlass demo. All artwork is CSS/SVG.</footer>
+</body>
+</html>

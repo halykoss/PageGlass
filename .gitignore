@@ -1,0 +1,7 @@
+# Local leftovers and build output
+_old/
+dist/
+.claude/
+__pycache__/
+*.pyc
+.DS_Store

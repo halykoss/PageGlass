@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax
+        run: |
+          node --check src/pageglass.js
+          node --check tools/cdp.mjs
+          node --check tools/record-demo.mjs
+          python3 -m py_compile pageglass.py
+
+      - name: Installer round-trip on a fake Vivaldi
+        run: |
+          set -euo pipefail
+          fake="$RUNNER_TEMP/vivaldi/9.9.9.9/resources/vivaldi"
+          mkdir -p "$fake"
+          printf '<!DOCTYPE html>\n<html>\n<head><title>Vivaldi</title></head>\n<body>\n</body>\n</html>\n' > "$fake/window.html"
+          before=$(sha256sum "$fake/window.html")
+          export XDG_DATA_HOME="$RUNNER_TEMP/data"
+          python3 pageglass.py install --vivaldi "$fake" --dry-run
+          python3 pageglass.py install --vivaldi "$fake"
+          grep -q 'src="pageglass.js"' "$fake/window.html"
+          test -f "$fake/pageglass.js"
+          python3 pageglass.py status --vivaldi "$fake" | grep -q 'Patched           : yes'
+          python3 pageglass.py install --vivaldi "$fake"          # update path
+          python3 pageglass.py uninstall --vivaldi "$fake"
+          [ "$(sha256sum "$fake/window.html")" = "$before" ]
+          test ! -f "$fake/pageglass.js"
+
+      - name: Build release zip
+        run: scripts/build-release.sh
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/PageGlass-*.zip docs/demo.mp4 \
+            --title "PageGlass ${GITHUB_REF_NAME#v}" \
+            --notes "See [CHANGELOG.md](CHANGELOG.md) for what's new. Install: unzip, quit Vivaldi, run \`python3 pageglass.py install\`."
