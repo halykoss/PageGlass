@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Turns the timestamped frames from record-demo.mjs into an MP4 (H.264) and a README GIF.
+# Turns the timestamped frames from record-demo.mjs into an MP4 (H.264) and the README GIF.
 #   tools/make-video.sh <frames-dir> <output-basename>   →  <basename>.mp4, <basename>.gif
 set -euo pipefail
 frames="$1"; outbase="$2"
@@ -20,8 +20,9 @@ ffmpeg -y -loglevel error -f concat -safe 0 -i "$list" \
   -vf "fps=30,scale=1440:-2:flags=lanczos,format=yuv420p" \
   -c:v libx264 -preset slow -crf 20 -movflags +faststart "$outbase.mp4"
 
-ffmpeg -y -loglevel error -i "$outbase.mp4" \
-  -vf "fps=15,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=192:stats_mode=diff[p];[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle" \
+# README GIF: first 17 s, cropped to the toolbars (where the effect is), ~2 MB.
+ffmpeg -y -loglevel error -t 17 -i "$outbase.mp4" \
+  -vf "crop=1440:400:0:0,fps=10,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
   "$outbase.gif"
 
 ls -lh "$outbase.mp4" "$outbase.gif"

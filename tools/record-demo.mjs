@@ -21,6 +21,8 @@ const list = await targets();
 const ui = await connect(list.find((t) => t.url.endsWith('/window.html')).webSocketDebuggerUrl);
 const page = await connect(list.find((t) => t.type === 'page' && t.url.includes('/demo/')).webSocketDebuggerUrl);
 
+// Captures pause while the window is hidden: make sure it is in front.
+await ui.send('Page.bringToFront');
 // Load the current build of PageGlass into the running window (replaces any installed copy).
 await ui.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] });
 await page.evaluate('scrollTo(0,0)');
@@ -64,7 +66,7 @@ await sleep(1200);
 await wheel(1500, 3800);                          // scroll down through the colours
 await sleep(700);
 await hover('.toolbar-mainbar .pg-run-start button');  // hover the frosted capsules
-await hover('.toolbar-mainbar .pg-run-start + .pg-run button');
+await hover('.toolbar-mainbar button[data-name="Reload"]');
 await hover('.UrlBar-AddressField', 600);
 await ui.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 720, y: 600 });
 await sleep(500);
