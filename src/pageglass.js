@@ -1,5 +1,5 @@
 /*!
- * PageGlass 1.0.1 — Liquid Glass look for the Vivaldi browser UI.
+ * PageGlass 1.0.2 — Liquid Glass look for the Vivaldi browser UI.
  * https://github.com/halykoss/PageGlass · MIT License
  *
  * Runs inside Vivaldi's own window (window.html). It captures the visible tab
@@ -9,7 +9,7 @@
 (() => {
   'use strict';
   if(window.__pageGlass)return;
-  const VERSION='1.0.1';
+  const VERSION='1.0.2';
   const STORE='pageglass.enabled';
   const T={off:'off',on:n=>`on · ${n} captures`,paused:'paused on this page',noimg:'no image',toggle:'click to turn on/off'};
   const api=globalThis.chrome||globalThis.browser;
@@ -37,7 +37,7 @@
   function schedule(delay=0){if(!pg.enabled)return;if(pg.busy){pending=true;return;}if(timer)return;timer=setTimeout(()=>{timer=0;frame();},Math.max(delay,interval()-(performance.now()-lastCapture)));}
   function clear(){
     pg.epoch++;pending=false;lastFrame=null;cancelAnimationFrame(raf);raf=0;
-    for(const [el,layer]of layers){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card');delete el.__pgWant;}layers.clear();classWatch.disconnect();
+    for(const [el,layer]of layers){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card','pg-icons');delete el.__pgWant;}layers.clear();classWatch.disconnect();
   }
   // Group adjacent real buttons into shared glass capsules (Safari 26 style).
   // Spacers, dividers and hidden slots are also `.button-toolbar > button` in
@@ -50,6 +50,21 @@
     if(!b||b.offsetWidth<8||b.offsetHeight<8)return false;
     return !!b.querySelector('svg,img,.button-icon')||!!b.textContent.trim();
   };
+  // Vivaldi tags toolbar buttons with a language-independent data-name.
+  const role=item=>item?.querySelector(':scope>button')?.getAttribute('data-name')||'';
+  const SOLO=/^(Reload|Stop)$/, NAV=/^(Back|Forward)$/;
+  // May two neighbouring buttons share one capsule?
+  //  - Reload/Stop always stands alone (its own circle).
+  //  - Back and Forward pair up only with each other, and only while both are available;
+  //    if either is disabled they become two separate circles.
+  //  - Other adjacent buttons merge as before.
+  const linked=(a,b)=>{
+    if(!real(a)||!real(b))return false;
+    const ra=role(a),rb=role(b);
+    if(SOLO.test(ra)||SOLO.test(rb))return false;
+    if(NAV.test(ra)||NAV.test(rb))return NAV.test(ra)&&NAV.test(rb)&&!a.querySelector(':scope>button').disabled&&!b.querySelector(':scope>button').disabled;
+    return true;
+  };
   function capsules(){
     for(const el of document.querySelectorAll('.pg-run'))el.classList.remove(...RUN);
     for(const bar of document.querySelectorAll('#browser .toolbar-mainbar')){
@@ -58,8 +73,8 @@
         // Inside a .toolbar-group the run may continue into the neighbouring group.
         const prev=item.previousElementSibling,next=item.nextElementSibling;
         item.classList.add('pg-run');
-        if(!real(prev))item.classList.add('pg-run-start');
-        if(!real(next))item.classList.add('pg-run-end');
+        if(!linked(prev,item))item.classList.add('pg-run-start');
+        if(!linked(item,next))item.classList.add('pg-run-end');
       }
     }
   }
@@ -76,29 +91,32 @@
     const bar=document.querySelector('.toolbar-mainbar');
     if(!bar||document.getElementById('pageglass-toggle'))return;
     const holder=document.createElement('div');holder.className='button-toolbar';holder.id='pageglass-toggle';
-    button=document.createElement('button');button.type='button';button.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 14c1-5 4-6 8-5M8 17l8-10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+    button=document.createElement('button');button.type='button';button.innerHTML='<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 14c1-5 4-6 8-5M8 17l8-10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
     button.onclick=()=>{pg.enabled=!pg.enabled;try{api?.storage?.local?.set({[STORE]:pg.enabled});}catch{}clear();status();if(pg.enabled)refresh();};holder.append(button);bar.append(holder);status();
   }
   const css=document.createElement('style');css.id='pageglass-style';css.textContent=`
-    /* ── Palette: light (default) and dark follow the macOS appearance. ── */
+    /* ── Palette (light default, dark follows macOS). Liquid Glass: clear and neutral; colour comes
+       from the content behind, light comes from a thin rim, depth from wide soft shadows. ── */
     #browser .pg-surface{
-      --pg-ink:#1d1d1f;--pg-tint:rgba(246,246,248,.62);--pg-bar-tint:rgba(246,246,248,.46);--pg-gloss:rgba(255,255,255,.42);--pg-gloss-lo:rgba(255,255,255,.10);--pg-sheen:rgba(255,255,255,.24);
-      --pg-rim:rgba(255,255,255,.80);--pg-rim-soft:rgba(255,255,255,.28);--pg-line:rgba(0,0,0,.10);
-      --pg-glass:rgba(255,255,255,.50);--pg-glass-hi:rgba(255,255,255,.78);
-      --pg-hover:rgba(118,118,128,.16);--pg-press:rgba(118,118,128,.28);--pg-shadow:rgba(0,0,0,.16);
-      --pg-accent:#0a84ff;--pg-fallback:#eeeef1;--pg-card:rgba(248,248,250,.94);--pg-strip-hi:rgba(255,255,255,.62);--pg-strip-tint:rgba(248,248,250,.58);--pg-strip-lo:rgba(255,255,255,.38);
+      --pg-ink:#1d1d1f;--pg-tint:rgba(250,250,252,.44);--pg-bar-tint:rgba(250,250,252,.36);--pg-sheen:rgba(255,255,255,.10);
+      --pg-rim:rgba(255,255,255,.78);--pg-rim-soft:rgba(255,255,255,.30);--pg-line:rgba(0,0,0,.06);
+      --pg-glass:rgba(255,255,255,.20);--pg-glass-hi:rgba(255,255,255,.34);--pg-spec:rgba(255,255,255,.38);
+      --pg-hover:rgba(255,255,255,.38);--pg-press:rgba(255,255,255,.55);--pg-shadow:rgba(0,0,0,.14);--pg-ring:rgba(255,255,255,.45);
+      --pg-float:0 8px 22px -10px var(--pg-shadow),0 1px 3px -1px rgba(0,0,0,.08);
+      --pg-accent:#0a84ff;--pg-fallback:#eeeef1;--pg-card:rgba(248,248,250,.94);--pg-strip-hi:rgba(255,255,255,.40);--pg-strip-tint:rgba(250,250,252,.44);--pg-strip-lo:rgba(255,255,255,.22);
     }
     @media(prefers-color-scheme:dark){#browser .pg-surface{
-      --pg-ink:#f5f5f7;--pg-tint:rgba(22,23,28,.68);--pg-bar-tint:rgba(18,19,24,.52);--pg-gloss:rgba(255,255,255,.16);--pg-gloss-lo:rgba(255,255,255,.03);--pg-sheen:rgba(255,255,255,.07);
-      --pg-rim:rgba(255,255,255,.34);--pg-rim-soft:rgba(255,255,255,.08);--pg-line:rgba(0,0,0,.50);
-      --pg-glass:rgba(48,48,54,.55);--pg-glass-hi:rgba(84,84,92,.55);
-      --pg-hover:rgba(255,255,255,.12);--pg-press:rgba(255,255,255,.20);--pg-shadow:rgba(0,0,0,.45);--pg-card:rgba(44,44,50,.94);--pg-fallback:#2c2c31;--pg-strip-hi:rgba(255,255,255,.10);--pg-strip-tint:rgba(30,30,36,.62);--pg-strip-lo:rgba(255,255,255,.045);
+      --pg-ink:#f5f5f7;--pg-tint:rgba(26,26,30,.52);--pg-bar-tint:rgba(20,20,24,.52);--pg-sheen:rgba(255,255,255,.04);
+      --pg-rim:rgba(255,255,255,.32);--pg-rim-soft:rgba(255,255,255,.10);--pg-line:rgba(0,0,0,.22);
+      --pg-glass:rgba(255,255,255,.05);--pg-glass-hi:rgba(255,255,255,.11);--pg-spec:rgba(255,255,255,.14);
+      --pg-hover:rgba(255,255,255,.10);--pg-press:rgba(255,255,255,.18);--pg-shadow:rgba(0,0,0,.42);--pg-ring:rgba(255,255,255,.12);
+      --pg-card:rgba(40,40,46,.92);--pg-fallback:#2c2c31;--pg-strip-hi:rgba(255,255,255,.07);--pg-strip-tint:rgba(26,26,30,.44);--pg-strip-lo:rgba(255,255,255,.03);
     }}
 
     /* ── Bar material: projected page, blurred and saturated, low tint, bright rim. ── */
     #browser .pg-surface.pg-pos{position:relative;}
     #browser .pg-surface:not(.pg-strip){background:transparent!important;}
-    #browser .pg-surface{isolation:isolate;color:var(--pg-ink)!important;backdrop-filter:none!important;box-shadow:0 .5px 0 var(--pg-line),0 10px 24px -14px var(--pg-shadow)!important;}
+    #browser .pg-surface{isolation:isolate;color:var(--pg-ink)!important;backdrop-filter:none!important;box-shadow:none!important;}
     #browser .pg-material{position:absolute;inset:0;z-index:-1;overflow:hidden;border-radius:inherit;pointer-events:none;contain:strict;background:var(--pg-fallback);}
     #browser .pg-material img{position:absolute;max-width:none!important;max-height:none!important;pointer-events:none;will-change:transform;}
     #browser .pg-material[data-mirror] .pg-base{filter:blur(5px) saturate(1.15)!important;}
@@ -111,11 +129,13 @@
     #browser .pg-reflect img{position:absolute;filter:blur(3px) saturate(1.3);}
     #browser .pg-material .pg-base{filter:blur(14px) saturate(1.4) brightness(1.03);}
     #browser .pg-refract{position:absolute;inset:0;overflow:hidden;}
-    #browser .pg-material::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,var(--pg-sheen),transparent 55%),linear-gradient(var(--pg-tint),var(--pg-tint));box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -1px 0 var(--pg-rim-soft),inset 0 12px 18px -16px var(--pg-rim);}
-    /* Glossy base bar (vs the frosted controls on it): sharper page, lacquer-like split highlight. */
-    #browser .pg-material[data-kind="bar"] .pg-base{filter:blur(5px) saturate(1.55) brightness(1.04)!important;}
-    #browser .pg-material[data-kind="bar"]::after{background:linear-gradient(180deg,var(--pg-gloss) 0,var(--pg-gloss-lo) 46%,transparent 50%,transparent 82%,var(--pg-gloss-lo)),linear-gradient(var(--pg-bar-tint),var(--pg-bar-tint));box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 2px 1px -1px var(--pg-rim),inset 0 -1px 0 var(--pg-rim-soft);}
-    #browser .pg-material[data-kind="bar"]>.pg-reflect{opacity:.6;}
+    #browser .pg-material::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,var(--pg-sheen),transparent 40%),linear-gradient(var(--pg-tint),var(--pg-tint));box-shadow:inset 0 .5px 0 var(--pg-rim-soft);}
+    /* The bar is the content seen through clear glass: gentle blur, vivid colour, a whisper of tint.
+       No highlight band and no rim: the controls floating on it carry the light. */
+    #browser .pg-material[data-kind="bar"] .pg-base{filter:blur(10px) saturate(1.45) brightness(1.03)!important;}
+    @media(prefers-color-scheme:dark){#browser .pg-material[data-kind="bar"] .pg-base{filter:blur(10px) saturate(1.15) brightness(.92)!important;}}
+    #browser .pg-material[data-kind="bar"]::after{background:linear-gradient(var(--pg-bar-tint),var(--pg-bar-tint));box-shadow:none;}
+    #browser .pg-material[data-kind="bar"]>.pg-reflect{opacity:.3;}
     #browser .pg-surface .toolbar-mainbar,#browser .pg-surface #tabs-tabbar-container,#browser .pg-surface #tabs-container{background:transparent!important;backdrop-filter:none!important;}
     /* Taller bar so the 32px capsules float with ~4px of glass around them instead of touching the edges. */
     #browser .mainbar.pg-surface,#browser .pg-surface .mainbar{height:auto!important;min-height:40px!important;}
@@ -127,15 +147,20 @@
     #browser .pg-surface .toolbar-extensions:has(.button-toolbar>button),
     #browser .pg-surface .UrlBar-AddressField,
     #browser .pg-surface .UrlBar-SearchField{
-      background:linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass))!important;
-      -webkit-backdrop-filter:blur(22px) saturate(1.2) brightness(1.06);backdrop-filter:blur(22px) saturate(1.2) brightness(1.06);
+      background:linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass) 60%)!important;
+      -webkit-backdrop-filter:blur(16px) saturate(1.8) brightness(1.08);backdrop-filter:blur(16px) saturate(1.8) brightness(1.08);
       border-color:transparent!important;
-      box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 -.5px 0 var(--pg-line),0 .5px 0 var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;
+      box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),var(--pg-float)!important;
+    }
+    /* Dark glass dims what is behind it instead of brightening it. */
+    @media(prefers-color-scheme:dark){
+      #browser .pg-surface .toolbar-mainbar .pg-run,#browser .pg-surface .toolbar-extensions:has(.button-toolbar>button),
+      #browser .pg-surface .UrlBar-AddressField,#browser .pg-surface .UrlBar-SearchField{-webkit-backdrop-filter:blur(16px) saturate(1.25) brightness(.82);backdrop-filter:blur(16px) saturate(1.25) brightness(.82);}
     }
     #browser .pg-surface .toolbar-extensions:has(.button-toolbar>button),
     #browser .pg-surface .UrlBar-AddressField,#browser .pg-surface .UrlBar-SearchField{
       border-radius:999px!important;
-      box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;
+      box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),var(--pg-float)!important;
     }
     #browser .pg-surface .UrlBar-AddressField:focus-within{box-shadow:inset 0 1px 0 var(--pg-rim),0 0 0 .5px var(--pg-line),0 0 0 3px color-mix(in srgb,var(--pg-accent) 35%,transparent)!important;}
     #browser .pg-surface .UrlBar-AddressField,#browser .pg-surface .UrlFragment-Wrapper,#browser .pg-surface .UrlBar-AddressField input{color:var(--pg-ink)!important;}
@@ -143,11 +168,26 @@
     #browser .pg-surface .UrlFragment--Highlight{color:var(--pg-ink)!important;}
     #browser .pg-surface .UrlFragment--Lowlight{color:var(--pg-ink)!important;opacity:.55;}
 
+    /* Specular glint where light enters each shape (top-left), fading well before any segment seam. */
+    #browser .pg-surface .toolbar-mainbar .pg-run-start,
+    #browser .pg-surface .toolbar-extensions:has(.button-toolbar>button),
+    #browser .pg-surface .UrlBar-AddressField{
+      background:radial-gradient(30px 22px at 13px 2px,var(--pg-spec),transparent 100%),linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass) 60%)!important;
+    }
+    /* Whole shapes get a light edge all round (inner, never a dark outline). */
+    #browser .pg-surface .toolbar-mainbar .pg-run-start.pg-run-end,
+    #browser .pg-surface .toolbar-extensions:has(.button-toolbar>button),
+    #browser .pg-surface .UrlBar-AddressField,#browser .pg-surface .UrlBar-SearchField{
+      box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 0 0 .5px var(--pg-ring),inset 0 -.5px 0 var(--pg-rim-soft),var(--pg-float)!important;
+    }
     /* Capsule segments: one shape per run of adjacent buttons, no seams. */
     #browser .pg-surface .toolbar-mainbar .pg-run{align-self:center;display:flex;align-items:center;height:32px!important;min-height:32px!important;max-height:32px!important;margin-block:0!important;margin-inline:0!important;padding-inline:0!important;border-radius:0!important;}
-    #browser .pg-surface .toolbar-mainbar .pg-run-start{border-radius:999px 0 0 999px!important;padding-left:2px!important;margin-left:4px!important;box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;}
-    #browser .pg-surface .toolbar-mainbar .pg-run-end{border-radius:0 999px 999px 0!important;padding-right:2px!important;margin-right:4px!important;box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;}
-    #browser .pg-surface .toolbar-mainbar .pg-run-start.pg-run-end{border-radius:999px!important;}
+    #browser .pg-surface .toolbar-mainbar .pg-run-start{border-radius:999px 0 0 999px!important;padding-left:2px!important;margin-left:4px!important;box-shadow:inset 0 1px 0 var(--pg-rim),inset .5px 0 0 var(--pg-ring),inset 0 -.5px 0 var(--pg-rim-soft),var(--pg-float)!important;}
+    #browser .pg-surface .toolbar-mainbar .pg-run-end{border-radius:0 999px 999px 0!important;padding-right:2px!important;margin-right:4px!important;box-shadow:inset 0 1px 0 var(--pg-rim),inset -.5px 0 0 var(--pg-ring),inset 0 -.5px 0 var(--pg-rim-soft),var(--pg-float)!important;}
+    #browser .pg-surface .toolbar-mainbar .pg-run-start.pg-run-end{border-radius:999px!important;width:32px!important;min-width:32px!important;padding:2px!important;justify-content:center;}
+    #browser .pg-surface .toolbar-mainbar .pg-run-start.pg-run-end>button{width:28px!important;min-width:28px!important;max-width:28px!important;flex:0 0 28px!important;}
+    #browser .pg-surface .toolbar-mainbar .pg-run-start.pg-run-end:has(>button:disabled){opacity:.55;}
+    #browser .pg-surface .toolbar-mainbar .pg-run-start.pg-run-end>button:disabled{opacity:.7;}
     #browser .pg-surface .toolbar-mainbar .pg-run-start:not(.pg-run-end){clip-path:inset(-12px 0 -12px -12px);}
     #browser .pg-surface .toolbar-mainbar .pg-run-end:not(.pg-run-start){clip-path:inset(-12px -12px -12px 0);}
     #browser .pg-surface .toolbar-mainbar .pg-run:not(.pg-run-start):not(.pg-run-end){clip-path:inset(-12px 0);}
@@ -160,7 +200,7 @@
       border-radius:999px!important;background:transparent!important;box-shadow:none!important;border:0!important;color:var(--pg-ink)!important;
       transition:background-color 140ms ease,transform 260ms cubic-bezier(.3,1.6,.5,1);
     }
-    #browser .pg-surface .toolbar-mainbar .pg-run>button svg{width:26px!important;height:26px!important;flex-shrink:0;}
+    #browser .pg-surface .toolbar-mainbar .pg-run>button svg{flex-shrink:0;}
     #browser .pg-surface .toolbar-mainbar .pg-run>button img,#browser .pg-surface .toolbar-extensions .button-toolbar>button img{width:18px!important;height:18px!important;max-width:18px!important;max-height:18px!important;object-fit:contain;}
     #browser .pg-surface .toolbar-mainbar .pg-run>button:hover:not(:disabled),
     #browser .pg-surface .toolbar-extensions .button-toolbar>button:hover:not(:disabled){background:var(--pg-hover)!important;}
@@ -172,7 +212,7 @@
     /* ── Tabs ── */
     #browser .pg-surface .tab{color:var(--pg-ink)!important;}
     #browser .pg-surface .tab:not(.active):hover{background:var(--pg-hover)!important;}
-    #browser .pg-surface .tab.active{background:linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass))!important;box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;}
+    #browser .pg-surface .tab.active{background:linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass))!important;box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 0 0 .5px var(--pg-ring),inset 0 -.5px 0 var(--pg-rim-soft),var(--pg-float)!important;}
     #browser .pg-surface .tab .favicon{width:14px!important;height:14px!important;}
     /* Tab stacks. Vivaldi paints the accordion arrow of the active stack as a solid block (accent or
        stack colour) that sits behind the whole tile and spills out of the glass. Here the arrow is a
@@ -198,7 +238,7 @@
     #browser .pg-surface .tab.active.tab-accordion{box-shadow:inset 0 1px 0 var(--pg-rim)!important;}
     #browser .pg-surface .tab-position:not(.colored) .tab-group-indicator .tab-indicator.active{background:var(--pg-ink)!important;opacity:.45;}
     /* Narrow strips show icons only: Vivaldi may squeeze the first letters of titles in otherwise. */
-    #browser .pg-surface.pg-strip .tab .title,#browser .pg-surface.pg-strip .tab .close{display:none!important;}
+    #browser .pg-surface.pg-icons .tab .title{display:none!important;}
     /* Narrow strips: no permanent scrollbar on the glass (scrolling still works). */
     #browser .pg-surface.pg-strip *{scrollbar-width:none!important;}
     #browser .pg-surface.pg-strip ::-webkit-scrollbar{display:none!important;width:0!important;}
@@ -265,7 +305,7 @@
     #browser #panels-container.pg-surface #switch .button-toolbar.active>button,
     #browser #panels-container.pg-surface #switch .button-toolbar>button.active{
       background:linear-gradient(180deg,var(--pg-glass-hi),var(--pg-glass))!important;
-      box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),0 3px 8px -4px var(--pg-shadow)!important;
+      box-shadow:inset 0 1px 0 var(--pg-rim),inset 0 -.5px 0 var(--pg-rim-soft),0 0 0 .5px var(--pg-line),var(--pg-float)!important;
     }
     #browser #panels-container.pg-surface #switch>button.active::before,#browser #panels-container.pg-surface #switch>button.active::after,
     #browser #panels-container.pg-surface #switch .button-toolbar.active::before,#browser #panels-container.pg-surface #switch .button-toolbar.active::after{display:none!important;}
@@ -318,7 +358,7 @@
     const root=document.getElementById('browser'),rr=root.getBoundingClientRect();
     capturedPosition=atPosition;lastFrame={image,atPosition};
     const active=new Set(elements);
-    for(const [el,layer]of layers)if(!active.has(el)){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card');delete el.__pgWant;layers.delete(el);}
+    for(const [el,layer]of layers)if(!active.has(el)){layer.remove();el.classList.remove('pg-surface','pg-pos','pg-strip','pg-card','pg-icons');delete el.__pgWant;layers.delete(el);}
     const img=()=>{const i=document.createElement('img');i.alt='';i.draggable=false;i.decoding='async';return i;};
     for(const el of elements){
       const r=el.getBoundingClientRect();if(r.width*r.height>rr.width*rr.height*.45)continue;
@@ -337,8 +377,8 @@
       // reads as a grey bar. Only their items get glass. Wider panels become a floating card.
       const kind=layer.dataset.axis==='x'?'bar':r.width<120?'strip':'card';
       layer.dataset.kind=kind;
-      el.__pgWant=['pg-surface',...(el.classList.contains('pg-pos')?['pg-pos']:[]),...(kind==='bar'?[]:['pg-'+kind])];
-      el.classList.remove('pg-strip','pg-card');el.classList.add(...el.__pgWant);
+      el.__pgWant=['pg-surface',...(el.classList.contains('pg-pos')?['pg-pos']:[]),...(kind==='bar'?[]:['pg-'+kind]),...(kind==='strip'&&r.width<70?['pg-icons']:[])];
+      el.classList.remove('pg-strip','pg-card','pg-icons');el.classList.add(...el.__pgWant);
       // Measure the pane itself after our classes applied (bar height, insets, padding all change it).
       const lr=layer.getBoundingClientRect();
       const left=lr.x-rr.x+8,top=lr.y-rr.y;
@@ -447,6 +487,6 @@
   pg.stop=()=>{pg.enabled=false;clearTimeout(timer);clearTimeout(resizeTimer);observer?.disconnect();api?.runtime?.onMessage?.removeListener(receive);api?.tabs?.onActivated?.removeListener(changed);api?.tabs?.onUpdated?.removeListener(updated);window.removeEventListener('resize',resized);document.removeEventListener('visibilitychange',visible);clear();document.getElementById('pageglass-toggle')?.remove();css.remove();delete window.__pageGlass;};
   // The on/off choice survives restarts (localStorage is null inside Vivaldi's window).
   async function loadSetting(){try{const v=await api?.storage?.local?.get(STORE);if(v&&v[STORE]===false)pg.enabled=false;}catch{}}
-  async function start(){if(!document.getElementById('browser')){setTimeout(start,300);return;}await loadSetting();mount();observer=new MutationObserver(scheduleMount);observer.observe(document.body,{subtree:true,childList:true});if(pg.enabled)schedule(500);}
+  async function start(){if(!document.getElementById('browser')){setTimeout(start,300);return;}await loadSetting();mount();observer=new MutationObserver(scheduleMount);observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['disabled']});if(pg.enabled)schedule(500);}
   start();
 })();

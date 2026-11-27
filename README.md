@@ -2,7 +2,7 @@
 
 <p align="center">
   <b>A Liquid Glass look for the Vivaldi browser.</b><br>
-  Frosted controls on a glossy bar that refracts and reflects the page you're reading — live, while you scroll.
+  Clear glass toolbars that let the page you're reading shine through — live, while you scroll.
 </p>
 
 <p align="center">
@@ -22,9 +22,9 @@
 ## Features
 
 - **Glass that shows the page.** Vivaldi's toolbars display the tab underneath them, blurred and tinted, and follow it as you scroll.
-- **Glossy bar, frosted controls.** The bar is clear with a lacquer-like highlight; buttons and the address field sit on top as milky frosted capsules, so icons stay readable over any colour.
+- **Clear glass, light from the edges.** No tinted plastic and no gloss bands: the glass is neutral, takes its colour from the page behind, and catches light only along a thin rim with a soft glint. Buttons and the address field float on the bar with wide, soft shadows.
 - **Real reflections.** The bar that touches the page (top *or* bottom address bar) and the vertical strip beside it mirror the content right next to them.
-- **Safari-style capsules.** Adjacent buttons (back · forward · reload) merge into one seamless capsule; spacers and dividers are left alone.
+- **Safari-style circles and capsules.** Every stand-alone button is a glass circle; Back and Forward share one capsule while both are available; Reload always stands alone. Spacers and dividers are left alone.
 - **Floating sidebar.** Narrow strips (panel icons, vertical tabs) become an inset glass pane; wide panels become a floating card.
 - **Follows your Mac.** Light and dark appearance, *Reduce motion* and *Reduce transparency* are respected.
 - **Private by design.** Captures stay in memory, never on disk or on the network; internal pages and private windows are never captured.
@@ -98,9 +98,9 @@ All colours and strengths are CSS variables at the top of the stylesheet in [`sr
 
 | Variable | What it controls |
 |---|---|
-| `--pg-bar-tint` | How see-through the glossy bar is (higher alpha = more opaque) |
-| `--pg-gloss`, `--pg-gloss-lo` | Strength of the lacquer highlight on the bar |
-| `--pg-glass`, `--pg-glass-hi` | Fill of the frosted capsules (buttons, address field) |
+| `--pg-bar-tint` | How see-through the bar is (higher alpha = more opaque) |
+| `--pg-glass`, `--pg-glass-hi` | Fill of the glass circles and capsules (buttons, address field) |
+| `--pg-rim`, `--pg-ring`, `--pg-spec` | The light: top rim, edge ring and corner glint |
 | `--pg-tint` | Tint of the other glass surfaces |
 | `--pg-strip-tint` | Tint of the vertical strip pane |
 | `MIRROR` (JS constant) | How much the reflected page is compressed (default `0.45`) |

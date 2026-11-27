@@ -2,6 +2,20 @@
 
 All notable changes to PageGlass are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.0.2] — 2026-11-27
+
+### Changed
+- New glass material, closer to Apple's Liquid Glass and away from the Aero look: no gloss band across the bar, no tinted plastic fills and no dark outlines. Glass is clear and neutral, takes its colour from the page, and gets its light from a thin rim, an inner edge ring and a soft corner glint; controls float on wide soft shadows. Dark glass dims what is behind it instead of brightening it.
+- Reload (and Stop) is always its own glass circle.
+- Back and Forward share one capsule only while both are available; if either is unavailable they become two separate circles, the unavailable one dimmed. Buttons are recognised by Vivaldi's language-independent `data-name`, and capsules update as soon as a button's state changes.
+- Every stand-alone toolbar button is now a perfect 32 px circle instead of a short pill.
+
+### Fixed
+- Extension icons without a `viewBox` (e.g. a VPN badge) were cropped; toolbar icons now keep their native size.
+- No visible seam inside multi-button capsules.
+- The close button (×) of tabs no longer appeared on hover in vertical tab bars: 1.0.1 hid it together with the titles. It is back, exactly where Vivaldi puts it.
+- Tab titles are hidden only in truly icon-only strips (narrower than 70 px), not in every narrow vertical bar.
+
 ## [1.0.1] — 2026-11-25
 
 ### Fixed
