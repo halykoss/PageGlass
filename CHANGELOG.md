@@ -2,6 +2,11 @@
 
 All notable changes to PageGlass are listed here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [1.0.3] — 2026-11-28
+
+### Fixed
+- On insecure (`http`) pages the site-info button's “Not secure” label spilled over the URL and its icon over the Reload button: the button was fixed at 26 px. Address-field buttons now size to their content — icon-only ones stay 26 px circles, labelled ones become a pill.
+
 ## [1.0.2] — 2026-11-27
 
 ### Changed

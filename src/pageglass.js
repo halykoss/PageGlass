@@ -1,5 +1,5 @@
 /*!
- * PageGlass 1.0.2 — Liquid Glass look for the Vivaldi browser UI.
+ * PageGlass 1.0.3 — Liquid Glass look for the Vivaldi browser UI.
  * https://github.com/halykoss/PageGlass · MIT License
  *
  * Runs inside Vivaldi's own window (window.html). It captures the visible tab
@@ -9,7 +9,7 @@
 (() => {
   'use strict';
   if(window.__pageGlass)return;
-  const VERSION='1.0.2';
+  const VERSION='1.0.3';
   const STORE='pageglass.enabled';
   const T={off:'off',on:n=>`on · ${n} captures`,paused:'paused on this page',noimg:'no image',toggle:'click to turn on/off'};
   const api=globalThis.chrome||globalThis.browser;
@@ -250,7 +250,10 @@
     #browser .pg-surface .UrlBar-AddressField .button-toolbar>button,
     #browser .pg-surface .UrlBar-AddressField .SiteInfoButton>button,
     #browser .pg-surface .UrlBar-AddressField .BookmarkButton button{
-      width:26px!important;min-width:26px!important;height:26px!important;min-height:26px!important;padding:0!important;margin:0 1px!important;
+      /* Auto width: icon-only buttons stay a 26 px circle, but the site-info button grows into a pill
+         when Vivaldi adds a label such as "Not secure" (a fixed width made it spill over the URL). */
+      width:auto!important;min-width:26px!important;max-width:none!important;height:26px!important;min-height:26px!important;padding:0 4px!important;margin:0 1px!important;
+      display:inline-flex!important;align-items:center;justify-content:center;gap:4px;flex:0 0 auto!important;
       border-radius:999px!important;border:0!important;outline-offset:-2px;background:transparent!important;box-shadow:none!important;color:var(--pg-ink)!important;opacity:.72;
       transition:background-color 140ms ease,opacity 140ms ease,transform 260ms cubic-bezier(.3,1.6,.5,1);
     }
